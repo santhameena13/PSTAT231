@@ -1,0 +1,161 @@
+---
+title: "Homework Assignment"
+author: "Archana and Santha"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+
+```{r setup, echo=FALSE}
+library(knitr)
+library(ggplot2)
+# set global chunk options: images will be 7x5 inches
+knitr::opts_chunk$set(fig.width=7, fig.height=5)
+options(digits = 4, warn=-1)
+
+
+
+## indents are for indenting r code as formatted text
+## They may need to be adjusted depending on your OS
+# if your output looks odd, increase or decrease indent
+indent1 = '    '
+indent2 = '        '
+indent3 = '            '
+```
+
+```{r include=FALSE}
+library(tidyverse)
+library(readr)
+
+algae <- read_table2("algaeBloom.txt", col_names= c('season','size','speed','mxPH','mnO2','Cl','NO3','NH4','oPO4','PO4','Chla','a1','a2','a3','a4','a5','a6','a7'), na="XXXXXXX")
+
+glimpse(algae)
+```
+
+1. (a) Count the number of observations in each season using summarise() in dplyr.
+
+```{r indent=indent2}
+algae %>% group_by(season) %>% summarise(count=n())
+```
+    (b) Are there missing values? Calculate the mean and variance of each chemical (Ignore a1 through
+a7). What do you notice about the magnitude of the two quantities for different chemicals?
+
+
+
+```{r indent=indent2}
+sum(is.na(algae))
+```
+Yes, there are 33 missing values. 
+
+```{r indent=indent2}
+chemicals = select(algae, 'mxPH','mnO2','Cl','NO3','NH4','oPO4','PO4','Chla')
+apply(chemicals, 2, mean, na.rm=TRUE)
+apply(chemicals, 2, var, na.rm=TRUE)
+```
+Since the range of pH is 0 to 14, mxpH has the minimum variance as expected. Others ('Cl','NO3','NH4','oPO4','PO4','Chla') have more outliers and hence high variance.
+
+
+    (c) Mean and Variance is one measure of central tendency and spread of data. Median and Median
+Absolute Deviation are alternative measures of central tendency and spread.
+For a univariate data set X1,X2, ...,Xn, the Median Absolute Deviation (MAD) is defined as the
+median of the absolute deviations from the data’s median:
+MAD = median(|Xi - median(X)|)
+Compute median and MAD of each chemical and compare the two sets of quantities (i.e., mean &
+variance vs. median & MAD). What do you notice?
+
+```{r indent=indent2}
+apply(chemicals, 2, median, na.rm=TRUE)
+apply(chemicals, 2, mad, na.rm=TRUE)
+```
+mxPH and mnO2 have fewer/no outliers which is reflected in the low variance values. For these variables, mean and variance would be sufficient. MAD is less sensitive to outliers compared to variance and hence a robust measure of central tendency. For variables with a large number of outliers (like NH4), median and MAD would be a better measure of central tendency and spread of data. 
+
+
+2. Data visualization Most of the time, the information in the data set is also well captured graphically.
+Histogram, scatter plot, boxplot, Q-Q plot are frequently used tools for data visualization. Use ggplot
+for all of these visualizations.
+(a) Produce a histogram of mxPH with the title ‘Histogram of mxPH’ based on algae data set. Use an appropriate argument to show the probability instead of the frequency as the vertical axis.
+(Hint: look at the examples in the help file for function geom_histogram()). Is the distribution
+skewed?
+
+  
+```{r, out.width='50%', fig.show='hold', indent=indent1}
+ggplot(algae, aes(algae$mxPH,..density..)) +
+  geom_histogram(binwidth = 0.1) +
+  ggtitle("Histogram of mxPH")
+```
+
+By the histogram, we can say that the distribution isn't skewed, and it's almost normal, with mean mxPH around 8.
+
+
+
+(b) Add a density curve using geom_density() and rug plots using geom_rug() to above histogram.
+  
+```{r, out.width='50%', fig.show='hold', indent=indent1}
+ggplot() +                                                
+  geom_histogram(data=algae, aes(mxPH,..density..),binwidth = 0.1) +
+  geom_density(data=algae, aes(mxPH,..density..)) +               
+  ggtitle("Histogram of mxPH") +                                
+  geom_rug(data=algae, aes(mxPH))
+```
+
+(c) Create a boxplot with the title ‘A conditioned Boxplot of Algal a1’ for a1 grouped by size. (Refer to help page for geom_boxplot()).
+
+```{r, out.width='50%', fig.show='hold', indent=indent1}
+ggplot(algae, aes(size, a1)) + geom_boxplot() + ggtitle('A conditioned Boxplot of Algal a1')
+```
+
+(d) Are there any outliers for NO3 and NH4? How many observations would you consider as outliers?
+How did you arrive at this conclusion?
+```{r, out.width='50%', fig.show='hold', indent=indent1}
+ggplot(algae, aes(x="", y=NO3)) + geom_boxplot()
+```
+
+```{r, out.width='50%', fig.show='hold', indent=indent1}
+ggplot(algae, aes(x="", y=NH4)) + geom_boxplot()
+```
+
+Yes there are outliers for NO3 and NH4. For NO3, there are around 5 outliers and for NH4 there are around 12 or 13 outliers. We made use of the boxplot to determine this.
+
+(e) Compare mean & variance vs. median & MAD for NO3 and NH4. What do you notice? Can you conclude which set of measures is more robust when outliers are present?
+
+The median and MAD values for NO3 and NH4 are more robust compared to the mean and variance values which are heavily affected by the presence of outliers in the values of NO3 and NH4. So we conclude that median and MAD values are more robust when outliers are present.
+
+
+#Predicting Algae Blooms
+Some water samples contained unknown values in several chemicals. Missing data are very common in
+real-world problems, and may prevent the use of certain data mining techniques that are not able to handle
+missing values.
+In this homework, we are going to introduce various ways to deal with missing values. After all the missing
+values have been taken care of, we will build a model to investigate the relationship between the variable
+a1 and other 11 predictors (season, size, speed, mxPH, mnO2, Cl, NO3, NH4, oPO4, PO4, Chla) utilizing
+cross-validation in the next problem.
+Dealing with missing values
+3. (a) How many observations contain missing values? How many missing values are there in each
+variable?
+
+```{r, indent=indent2}
+sum(!complete.cases(algae))
+summary(algae)
+sum(is.na(algae))
+```
+
+(b) Removing observations with missing values: use filter() function in dplyr package to
+observations with any missing value, and save the resulting dataset (without missing values) as
+algae.del. Report how many observations are in algae.del.
+Hint: complete.cases() may be useful.
+```{r, indent=indent2}
+algae.del <- algae %>% filter(complete.cases(.))
+nrow(algae.del)
+```
+
+(c) Imputing unknowns with measures of central tendency: the simplest and fastest way of
+filling in (imputing) missing values is to use some measures of central tendency such as mean,
+median and mode.
+2
+Use mutate_at() and ifelse() in dplyr to fill in missing values for each chemical with its median,
+and save the imputed dataset as algae.med. Report the number of observations in algae.med.
+Display the values of each chemical for the 48th, 62th and 199th obsevation in algae.med.
+This simple strategy, although extremely fast and thus appealing for large datasets, imputed values
+may have large bias that can influence our model fitting. An alternative for decreasing bias of
+imputed values is to use relationships between variables.
+
